@@ -1,5 +1,4 @@
-use std::{fmt::Display, ops::Deref, panic::UnwindSafe};
-
+use std::{fmt::Display, ops::Deref};
 #[derive(Debug, PartialEq, Eq)]
 pub struct Sample {
     red: u32,
@@ -13,14 +12,14 @@ pub struct ParseSampleError;
 #[derive(Debug, PartialEq, Eq)]
 pub struct Game {
     pub id: u32,
-    samples: Vec<Sample>
+    pub samples: Vec<Sample>
 }
 
 #[derive(Debug)]
 pub struct ParseGameError;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct Games(Vec<Game>);
+pub struct Games(pub Vec<Game>);
 
 
 impl Display for ParseSampleError {
@@ -49,10 +48,13 @@ impl TryFrom<&str> for Sample {
         let mut blue = 0;
 
         for substring in substrings {
-            let (amount, color) = substring
-                .split(" ")
-                .
-                .unwrap();
+            let mut split = substring.split(" ");
+            let amount = split.next()
+                .expect("split should have at least zero elements")
+                .parse::<u32>()
+                .expect("amount substring should be parseable as u32");
+            let color = split.next()
+                .expect("split should have two elements");
             match color {
                 "red" => red = amount,
                 "green" => green = amount,
@@ -96,24 +98,34 @@ impl Sample {
 
         Sample{ red, green, blue }
     }
+
+    /// The number of red, green and blue cubes
+    /// multiplied together
+    pub fn power(&self) -> u32 {
+        self.red * self.green * self.blue
+    }
 }
 
 impl TryFrom<&str> for Game {
     type Error = ParseGameError;
 
-    fn try_from(s: &str) -> Result<Self, Self::Error> {
-        let id = s
-            .split(":")
-            .collect::<Vec<&str>>()[0]
+    fn try_from(game_string: &str) -> Result<Self, Self::Error> {
+        let mut split = game_string
+            .split(":");
+
+        let id = split
+            .next()
+            .expect("game string split should contain a part before the \":\"")
             .split(" ")
-            .collect::<Vec<&str>>()
             .last()
             .expect("game id substrings should not be empty")
             .deref()
             .parse::<u32>()
             .expect("game id substring should be castable to u32");
 
-        let samples: Vec<Sample> = s[8..]
+        let samples: Vec<Sample> = split
+            .next()
+            .expect("game string should have a part after the \":\"")
             .split(";")
             .map(|x| { x.trim() })
             .map(|x| { Sample::try_from(x).unwrap() })
@@ -123,9 +135,19 @@ impl TryFrom<&str> for Game {
     }
 }
 
+impl Game {
+    /// The minimum set of cubes required in the 
+    /// bag to produce this game
+    pub fn minimum_set_of_cubes(&self) -> Sample {
+        Sample::union(&self.samples)
+    }
+}
+
 impl From<&str> for Games {
     fn from(s: &str) -> Self {
-        let games = s.lines()
+        let games = s
+            // .trim_end_matches("\n")
+            .lines()
             .map(|line| { Game::try_from(line).unwrap() })
             .collect::<Vec<Game>>();
         Games(games)
@@ -169,6 +191,18 @@ mod tests {
             ] 
         };
         let result = Game::try_from(INPUT).unwrap();
+        assert_eq!(result, output)
+    }
+
+    #[test]
+    fn test_game_minimum_set_of_cubes() {
+        let input: Game = Game { id: 1, samples: vec![
+            Sample::new(13, 23, 3),
+            Sample::new(2, 23, 12), 
+            Sample::new(13, 19, 12) 
+        ]};
+        let output = Sample::new(13, 23, 12);
+        let result = input.minimum_set_of_cubes();
         assert_eq!(result, output)
     }
 }
