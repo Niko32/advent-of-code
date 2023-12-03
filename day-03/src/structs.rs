@@ -1,4 +1,6 @@
-#[derive(Debug, PartialEq, Eq)]
+use std::fmt::{self, Display};
+
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub struct BBox {
     pub line: usize,
     pub left: usize,
@@ -7,6 +9,22 @@ pub struct BBox {
 
 #[derive(Debug)]
 pub struct PaddedSchematic(Vec<String>);
+
+#[derive(Debug)]
+pub struct Gear<'a> {
+    schematic: &'a PaddedSchematic,
+    pos: BBox,
+    part_numbers: [i32; 2],
+}
+
+#[derive(Debug)]
+pub struct GearCreationError(BBox);
+
+impl Display for BBox {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "BBox{{ line: {}, left: {}, right: {}}}", self.line, self.left, self.right)
+    }
+}
 
 impl BBox {
     pub fn new(line: usize, left: usize, right: usize) -> BBox{
@@ -17,34 +35,58 @@ impl BBox {
         self.right - self.left
     }
 
-    pub fn previous_char(&self) -> BBox {
+    pub fn bbox_to_the_left(&self) -> BBox {
         BBox::new(self.line, self.left - 1, self.left)
     }
 
-    pub fn next_char(&self) -> BBox {
+    pub fn bbox_to_the_right(&self) -> BBox {
         BBox::new(self.line, self.right, self.right + 1)
     }
 
-    pub fn chars_above(&self) -> BBox {
+    pub fn bbox_above(&self) -> BBox {
         BBox::new(self.line - 1, self.left - 1, self.right + 1)
     }
 
-    pub fn chars_below(&self) -> BBox {
+    pub fn bbox_below(&self) -> BBox {
         BBox::new(self.line + 1, self.left - 1, self.right + 1)
+    }
+
+    pub fn small_bbox_above(&self) -> BBox {
+        BBox::new(self.line - 1, self.left, self.right)
+    }
+
+    pub fn small_bbox_below(&self) -> BBox {
+        BBox::new(self.line + 1, self.left, self.right)
+    }
+
+    pub fn bbox_to_the_top_left(&self) -> BBox {
+        BBox::new(self.line - 1, self.left - 1, self.right - 1)
+    }
+
+    pub fn bbox_to_the_top_right(&self) -> BBox {
+        BBox::new(self.line - 1, self.left + 1, self.right + 1)
+    }
+
+    pub fn bbox_to_the_bottom_left(&self) -> BBox {
+        BBox::new(self.line + 1, self.left - 1, self.right - 1)
+    }
+
+    pub fn bbox_to_the_bottom_right(&self) -> BBox {
+        BBox::new(self.line + 1, self.left + 1, self.right + 1)
     }
 
     pub fn is_surrounded_by_symbol(&self, schematic: &PaddedSchematic) -> bool {
         let mut surrounding_chars: String = String::with_capacity(self.len() * 2 + 6);
         let mut is_surrounded: bool = false;
 
-        surrounding_chars.extend(schematic.chars_at(self.previous_char()));
-        surrounding_chars.extend(schematic.chars_at(self.next_char()));
+        surrounding_chars.extend(schematic.chars_at(&self.bbox_to_the_left()));
+        surrounding_chars.extend(schematic.chars_at(&self.bbox_to_the_right()));
 
         if self.line > 0 {
-            surrounding_chars.extend(schematic.chars_at(self.chars_above()));
+            surrounding_chars.extend(schematic.chars_at(&self.bbox_above()));
         }
         if self.line < schematic.0.len() - 1 {
-            surrounding_chars.extend(schematic.chars_at(self.chars_below()));
+            surrounding_chars.extend(schematic.chars_at(&self.bbox_below()));
         }
 
         for character in surrounding_chars.chars() {
@@ -108,7 +150,7 @@ impl PaddedSchematic {
 
     /// Get all characters in line i
     /// from left to right coordinate
-    pub fn chars_at(&self, bbox: BBox) -> Vec<char> {
+    pub fn chars_at(&self, bbox: &BBox) -> Vec<char> {
         let mut result: Vec<char> = Vec::with_capacity(bbox.len());
         self.0
             .iter()
@@ -126,8 +168,16 @@ impl PaddedSchematic {
     }
 
     pub fn number_at(&self, bbox: BBox) -> i32 {
+        let mut extended_bbox = bbox;
+        while self.chars_at(&extended_bbox.bbox_to_the_left())[0].is_digit(10) {
+            extended_bbox.left -= 1;
+        }
+        while self.chars_at(&extended_bbox.bbox_to_the_right())[0].is_digit(10) {
+            extended_bbox.right += 1;
+        }
+
         self 
-            .chars_at(bbox)
+            .chars_at(&extended_bbox)
             .into_iter()
             .collect::<String>() 
             .parse::<i32>()
@@ -141,6 +191,74 @@ impl PaddedSchematic {
             .filter(|bbox| { bbox.is_surrounded_by_symbol(&self) })
             .map(|bbox| { self.number_at(bbox) })
             .collect()
+    }
+
+    pub fn find_gears(&self) -> Vec<Gear> {
+        let mut gears: Vec<Gear> = vec![];
+
+        for (i, line) in self.0.iter().enumerate() {
+            for (j, character) in line.chars().enumerate() {
+                if character == '*' {
+                    let pos = BBox::new(i, j, j + 1);
+                    match Gear::new(self, pos) {
+                        Ok(gear) => gears.push(gear),
+                        Err(_) => (),
+                    }
+                }
+            }
+        }
+
+        gears
+    }
+}
+
+impl<'a> Gear<'a> {
+    pub fn new(schematic: &'a PaddedSchematic, pos: BBox) -> Result<Gear<'a>, GearCreationError> {
+        let mut part_numbers: Vec<i32> = vec![];
+
+        fn try_adding_part_numbers(pos: BBox, part_numbers: &mut Vec<i32>, schematic: &PaddedSchematic) -> bool {
+            if schematic.chars_at(&pos)[0].is_digit(10) {
+                part_numbers.push(schematic.number_at(pos));
+                true
+            } else {
+                false
+            }
+        }
+
+        // add part numbers to the sides
+        try_adding_part_numbers(pos.bbox_to_the_left(), &mut part_numbers, schematic);
+        try_adding_part_numbers(pos.bbox_to_the_right(), &mut part_numbers, schematic);
+
+        if !try_adding_part_numbers(pos.small_bbox_above(), &mut part_numbers, schematic) {
+            // add part numbers in the upper corners
+            try_adding_part_numbers(pos.bbox_to_the_top_left(), &mut part_numbers, schematic);
+            try_adding_part_numbers(pos.bbox_to_the_top_right(), &mut part_numbers, schematic);
+        }
+
+        if !try_adding_part_numbers(pos.small_bbox_below(), &mut part_numbers, schematic) {
+            // add part numbers in the bottom corners
+            try_adding_part_numbers(pos.bbox_to_the_bottom_left(), &mut part_numbers, schematic);
+            try_adding_part_numbers(pos.bbox_to_the_bottom_right(), &mut part_numbers, schematic);
+        }
+
+        if part_numbers.len() == 2 {
+            let part_numbers: [i32; 2] = part_numbers.try_into()
+                .expect("part numbers vector should have 2 elements");
+            let gear: Gear<'a> = Gear { schematic, pos, part_numbers };
+            Ok(gear)
+        } else {
+            Err(GearCreationError(pos))
+        }
+    }
+
+    pub fn ratio(&self) -> i32 {
+        self.part_numbers.into_iter().product()
+    }
+}
+
+impl fmt::Display for GearCreationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "No gear at position {}", self.0)
     }
 }
 
@@ -229,7 +347,7 @@ mod tests {
             vec!['.', '*', '.']
         ];
         for (i, bbox) in bboxes.into_iter().enumerate() {
-            let result = schematic.chars_at(bbox);
+            let result = schematic.chars_at(&bbox);
             assert_eq!(result, strings_to_be_read[i]);
         }
     }
