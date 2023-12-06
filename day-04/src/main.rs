@@ -1,0 +1,50 @@
+mod structs;
+use crate::structs::*;
+
+const EXAMPLE_INPUT: &str = "Card 1: 41 48 83 86 17 | 83 86  6 31 17  9 48 53
+Card 2: 13 32 20 16 61 | 61 30 68 82 17 32 24 19
+Card 3:  1 21 53 59 44 | 69 82 63 72 16 21 14  1
+Card 4: 41 92 73 84 69 | 59 84 76 51 58  5 54 83
+Card 5: 87 83 26 28 32 | 88 30 70 12 93 22 82 36
+Card 6: 31 18 13 56 72 | 74 77 10 23 35 67 36 11
+";
+
+pub fn solve_puzzle1(input: &str) -> i32 {
+    let card_pile = CardPile::from(input);
+    card_pile.count_points() as i32
+}
+
+pub fn solve_puzzle2(input: &str) -> i32 {
+    let mut card_pile = CardPile::from(input);
+    card_pile.win_more_cards();
+    card_pile.count_cards() as i32
+}
+
+fn main() {
+    const INPUT: &str = include_str!("../data/input1.txt");
+
+    let solution1 = solve_puzzle1(INPUT);
+    println!("Solution to puzzle one: {}", solution1);
+
+    let solution2 = solve_puzzle2(INPUT);
+    println!("Solution to puzzle two: {}", solution2);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_example_input1() {
+        const EXAMPLE_OUTPUT: i32 = 13;
+        let result = solve_puzzle1(EXAMPLE_INPUT);
+        assert_eq!(result, EXAMPLE_OUTPUT);
+    }
+
+    #[test]
+    fn test_example_input2() {
+        const EXAMPLE_OUTPUT: i32 = 30;
+        let result = solve_puzzle2(EXAMPLE_INPUT);
+        assert_eq!(result, EXAMPLE_OUTPUT);
+    }
+}
