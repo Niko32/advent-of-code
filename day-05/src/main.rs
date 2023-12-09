@@ -9,7 +9,8 @@ pub fn solve_puzzle1(input: &str) -> i32 {
 }
 
 pub fn solve_puzzle2(input: &str) -> i32 {
-    todo!();
+    let almanac = Almanac::from_ranges(input);
+    almanac.nearest_seed_location() as i32
 }
 
 fn main() {
@@ -33,10 +34,9 @@ mod tests {
         assert_eq!(result, EXAMPLE_OUTPUT);
     }
 
-    #[ignore]
     #[test]
     fn test_example_input2() {
-        const EXAMPLE_OUTPUT: i32 = 30;
+        const EXAMPLE_OUTPUT: i32 = 46;
         let result = solve_puzzle2(EXAMPLE_INPUT);
         assert_eq!(result, EXAMPLE_OUTPUT);
     }
