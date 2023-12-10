@@ -48,6 +48,37 @@ impl From<&str> for Races {
     }
 }
 
+impl From<&str> for Race {
+    fn from(value: &str) -> Self {
+        let mut split = value.lines();
+        let time_str = split.next().expect("Split should have one line for time");
+        let distance_str = split
+            .next()
+            .expect("Split should have a second line for distance");
+
+        let time = time_str
+            .split(':')
+            .nth(1)
+            .expect("Time string should contain times after colon")
+            .replace(' ', "")
+            .parse::<u64>()
+            .expect("Time should be parsable as u64");
+
+        let distance = distance_str
+            .split(':')
+            .nth(1)
+            .expect("Distance string should contain times after colon")
+            .replace(' ', "")
+            .parse::<u64>()
+            .expect("Distance string should be parsable as u64");
+
+        Race {
+            allowed_time: time,
+            record_distance: distance,
+        }
+    }
+}
+
 impl Race {
     pub fn strategies(&self) -> Vec<u64> {
         let mut strategies = Vec::with_capacity(self.allowed_time as usize + 1);
