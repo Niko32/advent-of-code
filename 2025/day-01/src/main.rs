@@ -1,10 +1,37 @@
 mod structs;
-use crate::structs::*;
 
 pub const EXAMPLE_INPUT: &str = include_str!("../data/example_input.txt");
 
-pub fn solve_puzzle1(input: &str) -> i64 {
-    
+fn solve_puzzle1(input: &str) -> i64 {
+    let rotations: Vec<&str> = input
+        .lines()
+        .filter(|line| !line.is_empty())
+        .collect();
+
+    let mut dial = 50;
+    let mut zeros = 0;
+    for r in &rotations {
+        let (direction, distance) = r.split_at(1);
+
+        let steps: i32 = distance.parse()
+            .expect("failed to parse distance as i32");
+
+        match direction {
+            "L" => {
+                dial = ((dial + 100) - steps) % 100
+            }
+            "R" => {
+                dial = (dial + steps) % 100
+            }
+            _ => panic!("invalid direction")
+        }
+
+        if dial == 0 {
+            zeros += 1
+        }
+    }
+
+    return zeros
 }
 
 // pub fn solve_puzzle2(input: &str) -> i64 {
