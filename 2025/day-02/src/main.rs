@@ -2,6 +2,11 @@ mod structs;
 
 pub const EXAMPLE_INPUT: &str = include_str!("../data/example_input.txt");
 
+fn ranges(s: &str) Vec<(i32, i32)> {
+    s.split(",")
+        .map(|substring| { substring.split("-") as (i32, i32)})
+}
+
 fn solve_puzzle1(input: &str) -> i32 {
     
 }

@@ -1,8 +1,8 @@
 {
     "rust-analyzer.linkedProjects": [
-        ".\\day-01\\Cargo.toml",
-        ".\\day-02\\Cargo.toml",
-        ".\\day-03\\Cargo.toml",
-        ".\\day-04\\Cargo.toml"
-    ]
+        "./Cargo.toml"
+    ],
+    "rust-analyzer.server.extraEnv": {
+        "PATH": "~/.cargo/bin:${env:PATH}"
+    }
 }

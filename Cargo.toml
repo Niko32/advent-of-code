@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "2025/day-01",
+    "2025/day-02",
+    "2025/day-03",
+]
