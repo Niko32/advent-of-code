@@ -37,7 +37,39 @@ fn solve_puzzle1(input: &str) -> i64 {
 }
 
 fn solve_puzzle2(input: &str) -> i64 {
-    0
+    let banks: Vec<&str> = input.lines().collect();
+    let mut sum = 0;
+
+    for bank in banks {
+        let mut buffer_size: usize = bank.len() - 12;
+        let mut digits = String::new();
+
+        let mut j = 0;
+        while j < bank.chars().count() {
+            let mut highest_i = 0;
+            let mut highest_digit = 0;
+
+            for (i, c) in bank.chars().skip(j).take(buffer_size + 1).enumerate() {
+                let digit = c.to_digit(10).expect("failed to cast to digit");
+                if digit > highest_digit {
+                    highest_digit = digit;
+                    highest_i = i;
+                }
+            }
+            buffer_size -= highest_i;
+            j += highest_i;
+
+            digits.push_str(&highest_digit.to_string());
+
+            j += 1;
+        }
+        digits = digits[..digits.len() - buffer_size].to_string();
+        
+        println!("bank: {}, digits: {}", bank, digits);
+        sum += digits.parse::<i64>().expect("failed to parse digits to i64");
+    }
+
+    sum
 }
 
 fn main() {
@@ -63,7 +95,7 @@ mod tests {
 
     #[test]
     fn test_example_input2() {
-        const EXAMPLE_OUTPUT: i64 = 6;
+        const EXAMPLE_OUTPUT: i64 = 3121910778619;
         let result = solve_puzzle2(EXAMPLE_INPUT);
         assert_eq!(result, EXAMPLE_OUTPUT);
     }

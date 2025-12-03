@@ -44,8 +44,9 @@ fn solve_puzzle2(input: &str) -> i32 {
     let mut zeros: i32 = 0;
     let mut steps: i32 = 0;
     let mut direction: &str = "";
-    let mut distance: &str = "";
-    for r in &rotations {
+    let mut distance: &str;
+
+    for r in rotations {
         (direction, distance) = r.split_at(1);
 
         steps = distance.parse()
@@ -59,7 +60,7 @@ fn solve_puzzle2(input: &str) -> i32 {
         
         match direction {
             "L" => {
-                if (dial != 0 && dial < steps) {
+                if dial != 0 && dial < steps {
                     zeros += 1;
                 }
                 dial = ((dial + 100) - steps) % 100
