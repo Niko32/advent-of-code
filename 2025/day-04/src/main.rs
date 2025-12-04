@@ -3,7 +3,7 @@ mod structs;
 use std::fs::File;
 use std::io::Write;
 use std::time::Instant;
-use rayon::{prelude::*, result};
+use rayon::prelude::*;
 
 fn parse_input(input: &str) -> Vec<Vec<i32>> { 
     input.trim_end()
@@ -18,9 +18,9 @@ fn parse_input(input: &str) -> Vec<Vec<i32>> {
             }).collect()
         })
         .collect()
- }
+}
 
-fn solve_puzzle1(matrix: &Vec<Vec<i32>>) -> i32 {
+fn removable_rolls(matrix: &Vec<Vec<i32>>) -> Vec<Vec<i32>> {
     let row_count = matrix.len();
     let col_count = matrix[0].len();
 
@@ -29,20 +29,15 @@ fn solve_puzzle1(matrix: &Vec<Vec<i32>>) -> i32 {
     result_matrix.iter_mut().enumerate().for_each(|(i, row)| {
         for j in 0..col_count {
             let mut adjacency = 0;
-            let mut kernel_indices: Vec<usize> = Vec::new();
-            let mut kernel: Vec<i32> = Vec::new();
 
             let start_k = if i == 0 { 0 } else { i - 1 };
             for k in start_k..(i + 2).min(row_count) {
                 let start_l = if j == 0 { 0 } else { j - 1 };
                 for l in start_l..(j + 2).min(col_count) {
-                    kernel_indices.push(k*10+l);
-                    kernel.push(matrix[k][l]);
                     adjacency += matrix[k][l];
                 }
             }
 
-            println!("kernel: {:?}, {:?}, {:?}, i{:?}, j{:?}", kernel_indices, kernel, adjacency, i, j);
             if adjacency < 5 && row[j] == 1 {
                 row[j] = 1;
             } else {
@@ -51,19 +46,33 @@ fn solve_puzzle1(matrix: &Vec<Vec<i32>>) -> i32 {
         }
     });
 
-    println!("matrix");
-    for row in matrix {
-        println!("{:?}", row)
-    }
-    println!("result_matrix");
-    for row in &result_matrix {
-        println!("{:?}", row)
-    }
+    result_matrix
+}
 
+fn solve_puzzle1(matrix: &Vec<Vec<i32>>) -> i32 {
+    let result_matrix = removable_rolls(matrix);
     result_matrix.iter().flatten().sum()
 }
 
-fn solve_puzzle2(matrix: &Vec<Vec<i32>>) -> i32 { 0 }
+fn solve_puzzle2(matrix: &Vec<Vec<i32>>) -> i32 {
+    let mut roll_count = 1;
+    let mut total_roll_count = 0;
+    let mut intermediate_matrix = matrix.clone();
+    let col_count = matrix[0].len();
+
+    while roll_count > 0 {
+        let roll_matrix = removable_rolls(&intermediate_matrix);
+        roll_count = roll_matrix.iter().flatten().sum();
+        total_roll_count += roll_count;
+        intermediate_matrix.par_iter_mut().enumerate().for_each(|(i, row)| {
+            for j in 0..col_count {
+                row[j] = row[j] - roll_matrix[i][j];
+            }
+        })
+    }
+
+    total_roll_count
+}
 
 fn main() {
     const INPUT: &str = include_str!("../data/input1.txt");
@@ -105,7 +114,7 @@ mod tests {
 
     #[test]
     fn test_example_input2() {
-        const EXAMPLE_OUTPUT: i32 = 6;
+        const EXAMPLE_OUTPUT: i32 = 43;
         let parsed_input = parse_input(EXAMPLE_INPUT);
         let result = solve_puzzle2(&parsed_input);
         assert_eq!(result, EXAMPLE_OUTPUT);
