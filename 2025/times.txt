@@ -1,3 +1,3 @@
-time for parsing:    109ns
-time for puzzle one: 52ns
-time for puzzle two: 54ns
+time for parsing:    134.972µs
+time for puzzle one: 251.889774ms
+time for puzzle two: 42ns
